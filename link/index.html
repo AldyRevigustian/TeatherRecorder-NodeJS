@@ -208,27 +208,6 @@
       });
 
       $('#stop-btn').on('click', function () {
-        // fetch('/updateJson', {
-        //     method: 'POST',
-        //     headers: {
-        //       'Content-Type': 'application/json',
-        //       'Authorization': "Bearer " + jwt
-        //     },
-        //     body: JSON.stringify({
-        //       'link': $('#m3u8-placeholder')[0].value,
-        //       'isRecording': false
-        //     })
-        //   })
-        //   .then(response => response.json())
-        //   .then(data => {
-        //     setTimeout(() => {
-
-        //     }, 500);
-        //   })
-        //   .catch(error => {
-        //     console.error('Error:', error);
-        //   });
-        
         fetch('/record/stop', {
             method: 'POST',
             headers: {

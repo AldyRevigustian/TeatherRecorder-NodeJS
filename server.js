@@ -144,18 +144,16 @@ app.post("/record", async (req, res) => {
     const currentDateTime = getCurrentDateTime();
 
     ffmpeg = exec(
-      `ffmpeg -i "${inputUrl}" -c copy D:/Project/playground/m3u8-player/recorded/${currentDateTime}.mp4`
+      `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
     );
 
     ffmpeg.stdout.on("data", (data) => {
-      // console.log(data.toString());
       wss.clients.forEach((client) => {
         client.send(data.toString());
       });
     });
 
     ffmpeg.stderr.on("data", (data) => {
-      // console.error(data.toString());
       wss.clients.forEach((client) => {
         client.send(data.toString());
       });
