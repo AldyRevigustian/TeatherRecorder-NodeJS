@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>M3U8 Player</title>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <style>
+    body {
+      background-color: #282C34;
+    }
+
+    .page-name {
+      margin: 0.5em 2.5em;
+      color: white;
+      font-size: 2.5em;
+      text-align: center;
+    }
+
+    #text-box {
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      width: 30em;
+      height: 18em;
+      margin-top: -9em;
+      margin-left: -15em;
+    }
+
+    #myTextarea {
+      overflow-y: scroll;
+      resize: none;
+      background-color: black;
+      color: white;
+    }
+
+    .hiden {
+      display: none;
+    }
+  </style>
+</head>
+
+
+<body>
+  <div class="col-lg-6 d-flex flex-column vh-100 align-items-center" id="text-box">
+    <h1 class="page-name">Livestream Link</h1>
+    <div class="input-group mb-2">
+      <input type="text" class="form-control" placeholder="Paste the m3u8 link here" id="m3u8-placeholder">
+      <span class="input-group-btn">
+        <button class="btn btn-primary" type="button" id="play-btn">Play</button>
+      </span>
+    </div>
+    <span class="input-group-btn">
+      <button class="btn mt-3 mb-3 btn-primary" type="button" id="live-btn">Livestream Page</button>
+    </span>
+    <textarea id="myTextarea" rows="10" cols="80" style="overflow-y: scroll;" readonly></textarea>
+    <span class="input-group-btn">
+      <button class="btn mt-3 btn-success" type="button" id="record-btn">Record</button>
+      <button class="btn mt-3 btn-danger hiden" type="button" id="stop-btn">Stop</button>
+    </span>
+  </div>
+
+  <script>
+    $(window).on('load', function () {
+      const socket = new WebSocket("ws://localhost:3000");
+
+      socket.addEventListener("open", (event) => {
+        console.log("WebSocket connection opened:", event);
+      });
+
+      socket.addEventListener("message", (event) => {
+        var txtarea = document.getElementById("myTextarea");
+        txtarea.textContent += event.data;
+        txtarea.scrollTop = txtarea.scrollHeight;
+      });
+
+      socket.addEventListener("close", (event) => {
+        console.log("WebSocket connection closed:", event);
+      });
+
+      socket.addEventListener("error", (event) => {
+        console.error("WebSocket error:", event);
+      });
+
+      const jwt = localStorage.getItem('jwt');
+
+      fetch('/linkcek', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + jwt
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data);
+          if (data.success) {} else {
+            localStorage.removeItem('jwt');
+            window.location.href = '/';
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+
+      fetch('/link/get', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + jwt
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data);
+          if (data.success) {
+            localStorage.setItem('m3u8-link', data.linkContent.link);
+            $('#m3u8-placeholder')[0].value = data.linkContent.link;
+
+            if (data.linkContent.isRecording == true) {
+              $('#stop-btn').removeClass("hiden")
+              $('#record-btn').addClass("hiden")
+            } else {
+              $('#stop-btn').addClass("hiden")
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+
+      $('#play-btn').on('click', function () {
+        fetch('/link/add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': "Bearer " + jwt
+            },
+            body: JSON.stringify({
+              'link': $('#m3u8-placeholder')[0].value,
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            if (data.success) {
+              alert("Success Change")
+              localStorage.setItem('m3u8-link', $('#m3u8-placeholder')[0].value);
+              window.location.reload()
+            } else {
+              alert("Failed")
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      });
+
+      $('#live-btn').on('click', function () {
+        window.location.href = '/player/';
+      });
+
+      $('#record-btn').on('click', function () {
+        fetch('/updateJson', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': "Bearer " + jwt
+            },
+            body: JSON.stringify({
+              'link': $('#m3u8-placeholder')[0].value,
+              'isRecording': true
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            setTimeout(() => {
+              fetch('/record', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': "Bearer " + jwt
+                  },
+                  body: JSON.stringify({
+                    'inputUrl': $('#m3u8-placeholder')[0].value,
+                  })
+                })
+                .then(response => response.json())
+                .then(data => {
+                  if (data.success) {
+                    window.location.reload()
+                  } else {
+                    alert("Failed");
+                  }
+                })
+                .catch(error => {
+                  console.error('Error:', error);
+                });
+            }, 500);
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+
+      });
+
+      $('#stop-btn').on('click', function () {
+        // fetch('/updateJson', {
+        //     method: 'POST',
+        //     headers: {
+        //       'Content-Type': 'application/json',
+        //       'Authorization': "Bearer " + jwt
+        //     },
+        //     body: JSON.stringify({
+        //       'link': $('#m3u8-placeholder')[0].value,
+        //       'isRecording': false
+        //     })
+        //   })
+        //   .then(response => response.json())
+        //   .then(data => {
+        //     setTimeout(() => {
+
+        //     }, 500);
+        //   })
+        //   .catch(error => {
+        //     console.error('Error:', error);
+        //   });
+        
+        fetch('/record/stop', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': "Bearer " + jwt
+            }
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+            } else {
+              alert("Failed");
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      });
+
+    });
+  </script>
+</body>
+
+</html>
