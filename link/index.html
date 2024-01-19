@@ -88,16 +88,16 @@
       const jwt = localStorage.getItem('jwt');
 
       fetch('/linkcek', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': "Bearer " + jwt
-          },
-        })
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer " + jwt
+        },
+      })
         .then(response => response.json())
         .then(data => {
           console.log(data);
-          if (data.success) {} else {
+          if (data.success) { } else {
             localStorage.removeItem('jwt');
             window.location.href = '/';
           }
@@ -107,12 +107,12 @@
         });
 
       fetch('/link/get', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': "Bearer " + jwt
-          },
-        })
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer " + jwt
+        },
+      })
         .then(response => response.json())
         .then(data => {
           console.log(data);
@@ -126,6 +126,11 @@
             } else {
               $('#stop-btn').addClass("hiden")
             }
+
+            if (data.linkContent.isDone == true) {
+              var txarea = document.getElementById("myTextarea");
+              txarea.textContent += "Selesai Record";
+            }
           }
         })
         .catch(error => {
@@ -134,15 +139,15 @@
 
       $('#play-btn').on('click', function () {
         fetch('/link/add', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': "Bearer " + jwt
-            },
-            body: JSON.stringify({
-              'link': $('#m3u8-placeholder')[0].value,
-            })
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + jwt
+          },
+          body: JSON.stringify({
+            'link': $('#m3u8-placeholder')[0].value,
           })
+        })
           .then(response => response.json())
           .then(data => {
             console.log(data);
@@ -165,29 +170,29 @@
 
       $('#record-btn').on('click', function () {
         fetch('/updateJson', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': "Bearer " + jwt
-            },
-            body: JSON.stringify({
-              'link': $('#m3u8-placeholder')[0].value,
-              'isRecording': true
-            })
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + jwt
+          },
+          body: JSON.stringify({
+            'link': $('#m3u8-placeholder')[0].value,
+            'isRecording': true
           })
+        })
           .then(response => response.json())
           .then(data => {
             setTimeout(() => {
               fetch('/record', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': "Bearer " + jwt
-                  },
-                  body: JSON.stringify({
-                    'inputUrl': $('#m3u8-placeholder')[0].value,
-                  })
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': "Bearer " + jwt
+                },
+                body: JSON.stringify({
+                  'inputUrl': $('#m3u8-placeholder')[0].value,
                 })
+              })
                 .then(response => response.json())
                 .then(data => {
                   if (data.success) {
@@ -209,15 +214,20 @@
 
       $('#stop-btn').on('click', function () {
         fetch('/record/stop', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': "Bearer " + jwt
-            }
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + jwt
+          },
+          body: JSON.stringify({
+            'link': $('#m3u8-placeholder')[0].value,
           })
+        })
           .then(response => response.json())
           .then(data => {
             if (data.success) {
+              alert("Success Record")
+              window.location.reload()
             } else {
               alert("Failed");
             }

@@ -38,7 +38,7 @@
 
     <div class="col-4 d-flex flex-column align-items-center">
       <h3 class="mb-4">Record Status</h3>
-      <textarea id="myTextarea" rows="10"  style="overflow-y: scroll; width: 100%;" readonly></textarea>
+      <textarea id="myTextarea" rows="10" style="overflow-y: scroll; width: 100%;" readonly></textarea>
     </div>
   </div>
 
@@ -70,16 +70,20 @@
         this.paused ? this.play() : this.pause();
       });
       fetch('/link/get', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
         .then(response => response.json())
         .then(data => {
           console.log(data);
           if (data.success) {
             playM3u8(data.linkContent.link);
+            if (data.linkContent.isDone == true) {
+              var txarea = document.getElementById("myTextarea");
+              txarea.textContent += "Selesai Record";
+            }
           }
         })
         .catch(error => {
@@ -111,7 +115,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous">
-  </script>
+    </script>
 </body>
 
 </html>

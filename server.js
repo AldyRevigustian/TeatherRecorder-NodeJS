@@ -54,8 +54,8 @@ function padZero(value) {
 
 app.post("/link/add", authenticateToken, (req, res) => {
   try {
-    const { link, isRecording = false } = req.body;
-    const dataToWrite = JSON.stringify({ link, isRecording });
+    const { link, isRecording = false, isDone = false } = req.body;
+    const dataToWrite = JSON.stringify({ link, isRecording, isDone });
 
     fs.writeFileSync("link/link.json", dataToWrite);
     res.json({ success: true, message: "Link added successfully." });
@@ -129,8 +129,8 @@ app.get("/player", function (req, res) {
 
 app.post("/updateJson", (req, res) => {
   try {
-    const { link, isRecording } = req.body;
-    const dataToWrite = JSON.stringify({ link, isRecording });
+    const { link, isRecording, isDone = false } = req.body;
+    const dataToWrite = JSON.stringify({ link, isRecording, isDone });
     fs.writeFileSync("link/link.json", dataToWrite);
     res.json({ success: true, message: "Link added successfully." });
   } catch (e) {
@@ -148,12 +148,14 @@ app.post("/record", async (req, res) => {
     );
 
     ffmpeg.stdout.on("data", (data) => {
+      console.log(data.toString());
       wss.clients.forEach((client) => {
         client.send(data.toString());
       });
     });
 
     ffmpeg.stderr.on("data", (data) => {
+      console.log(data.toString());
       wss.clients.forEach((client) => {
         client.send(data.toString());
       });
@@ -167,6 +169,10 @@ app.post("/record", async (req, res) => {
 });
 
 app.post("/record/stop", (req, res) => {
+  const { link, isRecording = false, isDone = true } = req.body;
+  const dataToWrite = JSON.stringify({ link, isRecording, isDone });
+  fs.writeFileSync("link/link.json", dataToWrite);
+
   ffmpeg.stdin.write("q");
   res.json({ success: true, body: "Recording stopped" });
 });
