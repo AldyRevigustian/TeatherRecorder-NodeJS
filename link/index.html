@@ -117,7 +117,6 @@
         .then(data => {
           console.log(data);
           if (data.success) {
-            localStorage.setItem('m3u8-link', data.linkContent.link);
             $('#m3u8-placeholder')[0].value = data.linkContent.link;
 
             if (data.linkContent.isRecording == true) {
@@ -153,7 +152,6 @@
             console.log(data);
             if (data.success) {
               alert("Success Change")
-              localStorage.setItem('m3u8-link', $('#m3u8-placeholder')[0].value);
               window.location.reload()
             } else {
               alert("Failed")
