@@ -228,7 +228,7 @@ app.post("/playlist/add", authenticateToken, (req, res) => {
     } else {
       var playlist = JSON.parse(data);
     }
-    playlist.push({ name, link });
+    playlist.unshift({ name, link });
     console.log(playlist);
     fs.writeFile('playlist/playlist.json', JSON.stringify(playlist), 'utf8', (err) => {
       if (err) {
