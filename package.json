@@ -5,6 +5,7 @@
     "fluent-ffmpeg": "^2.1.2",
     "jsonwebtoken": "^9.0.2",
     "sqlite3": "^5.1.7",
-    "ws": "^8.16.0"
+    "ws": "^8.16.0",
+    "youtube-videos-uploader": "^2.0.26"
   }
 }

@@ -67,23 +67,28 @@
     $(window).on('load', function () {
       const socket = new WebSocket("ws://103.27.206.90:3000");
 
-      socket.addEventListener("open", (event) => {
-        console.log("WebSocket connection opened:", event);
-      });
+      function connectWebSocket() {
+        socket.addEventListener("open", (event) => {
+          console.log("WebSocket connection opened:", event);
+        });
 
-      socket.addEventListener("message", (event) => {
-        var txtarea = document.getElementById("myTextarea");
-        txtarea.textContent += event.data;
-        txtarea.scrollTop = txtarea.scrollHeight;
-      });
+        socket.addEventListener("message", (event) => {
+          var txtarea = document.getElementById("myTextarea");
+          txtarea.textContent += event.data;
+          txtarea.scrollTop = txtarea.scrollHeight;
+        });
 
-      socket.addEventListener("close", (event) => {
-        console.log("WebSocket connection closed:", event);
-      });
+        socket.addEventListener("close", (event) => {
+          console.log("WebSocket connection closed:", event);
+          setTimeout(connectWebSocket, 5000);
+        });
 
-      socket.addEventListener("error", (event) => {
-        console.error("WebSocket error:", event);
-      });
+        socket.addEventListener("error", (event) => {
+          console.error("WebSocket error:", event);
+        });
+      }
+
+      connectWebSocket();
 
       const jwt = localStorage.getItem('jwt');
 
@@ -163,7 +168,7 @@
       });
 
       $('#live-btn').on('click', function () {
-        window.location.href = '/player/';
+        window.open('/player/', '_blank');
       });
 
       $('#record-btn').on('click', function () {
@@ -231,6 +236,7 @@
             }
           })
           .catch(error => {
+            window.location.reload()
             console.error('Error:', error);
           });
       });

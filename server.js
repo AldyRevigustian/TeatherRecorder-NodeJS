@@ -9,6 +9,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
+const { addItem, updateRecording, updateUpload, getItemByName, db } = require('./database');
 
 var ffmpeg = [];
 
@@ -54,8 +55,9 @@ function padZero(value) {
 
 app.post("/link/add", authenticateToken, (req, res) => {
   try {
-    const { link, isRecording = false, isDone = false } = req.body;
-    const dataToWrite = JSON.stringify({ link, isRecording, isDone });
+    const currentDateTime = getCurrentDateTime();
+    const { link, isRecording = false, date = currentDateTime } = req.body;
+    const dataToWrite = JSON.stringify({ link, isRecording, date });
 
     fs.writeFileSync("link/link.json", dataToWrite);
     res.json({ success: true, message: "Link added successfully." });
@@ -129,9 +131,15 @@ app.get("/player", function (req, res) {
 
 app.post("/updateJson", (req, res) => {
   try {
-    const { link, isRecording, isDone = false } = req.body;
-    const dataToWrite = JSON.stringify({ link, isRecording, isDone });
+    const { isRecording } = req.body;
+    const linkContent = fs.readFileSync("link/link.json", "utf-8");
+    const parsedLinkContent = JSON.parse(linkContent);
+    const link = parsedLinkContent.link;
+    const date = parsedLinkContent.date;
+
+    const dataToWrite = JSON.stringify({ link, isRecording, date });
     fs.writeFileSync("link/link.json", dataToWrite);
+
     res.json({ success: true, message: "Link added successfully." });
   } catch (e) {
     res.json({ success: false, message: "Failed" });
@@ -140,8 +148,12 @@ app.post("/updateJson", (req, res) => {
 
 app.post("/record", async (req, res) => {
   try {
-    const inputUrl = req.body.inputUrl;
-    const currentDateTime = getCurrentDateTime();
+    const linkContent = fs.readFileSync("link/link.json", "utf-8");
+    const parsedLinkContent = JSON.parse(linkContent);
+
+    const inputUrl = parsedLinkContent.link;
+    const currentDateTime = parsedLinkContent.date;
+    addItem(`${currentDateTime}.mp4`)
 
     ffmpeg = exec(
       `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
@@ -161,6 +173,25 @@ app.post("/record", async (req, res) => {
       });
     });
 
+    ffmpeg.on("exit", (code, signal) => {
+      if (code == 0) {
+        const link = parsedLinkContent.link;
+        const date = parsedLinkContent.date;
+
+        updateRecording(`${date}.mp4`, 0)
+
+        const { isRecording = false, isDone = true } = req.body;
+        const dataToWrite = JSON.stringify({ link, isRecording, date, isDone });
+        fs.writeFileSync("link/link.json", dataToWrite);
+
+        wss.clients.forEach((client) => {
+          client.send("Streaming finished successfully");
+        });
+      } else {
+        console.error(`Streaming finished with error (code ${code}): ${signal}`);
+      }
+    });
+
     res.json({ success: true, body: "Recording started" });
   } catch (error) {
     console.error("Error Recording:", error);
@@ -169,8 +200,16 @@ app.post("/record", async (req, res) => {
 });
 
 app.post("/record/stop", (req, res) => {
-  const { link, isRecording = false, isDone = true } = req.body;
-  const dataToWrite = JSON.stringify({ link, isRecording, isDone });
+  const linkContent = fs.readFileSync("link/link.json", "utf-8");
+  const parsedLinkContent = JSON.parse(linkContent);
+
+  const link = parsedLinkContent.link;
+  const date = parsedLinkContent.date;
+
+  updateRecording(`${date}.mp4`, 0)
+
+  const { isRecording = false, isDone = true } = req.body;
+  const dataToWrite = JSON.stringify({ link, isRecording, date, isDone });
   fs.writeFileSync("link/link.json", dataToWrite);
 
   ffmpeg.stdin.write("q");
