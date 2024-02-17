@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playlist</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
+  <style>
+    body {
+      background-color: #282C34;
+      color: white;
+      overflow-x: hidden;
+    }
+
+    #myTextarea {
+      overflow-y: scroll;
+      resize: none;
+      background-color: black;
+      color: white;
+    }
+
+    .modal-content {
+      background-color: #212529;
+    }
+
+    .modal-header {
+      border-bottom: var(--bs-modal-header-border-width) solid #495057;
+      border-top-left-radius: var(--bs-modal-inner-border-radius);
+      border-top-right-radius: var(--bs-modal-inner-border-radius);
+    }
+
+    .modal-footer {
+      display: flex;
+      border-top: var(--bs-modal-footer-border-width) solid #495057;
+      border-bottom-right-radius: var(--bs-modal-inner-border-radius);
+      border-bottom-left-radius: var(--bs-modal-inner-border-radius);
+    }
+  </style>
+
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+</head>
+
+<body>
+  <div class="container col-8">
+    <div class="row mt-4">
+      <h1 class="col-8">Recorded Playlist</h1>
+      <button type="button" class="btn btn-success col-4" data-bs-toggle="modal" data-bs-target="#exampleModal">
+        Add video
+      </button>
+    </div>
+    <table class="table table-dark table-striped table-bordered mt-4">
+      <thead>
+        <tr>
+          <th scope="col" style="text-align: center;" class="col-8">Judul Video</th>
+          <th scope="col" style="text-align: center;" class="col-4">Link Youtube</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal fade modal-dark" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">Add Video</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="judulVid" class="form-label">Judul Video</label>
+            <input type="email" class="form-control" id="judulVid" aria-describedby="emailHelp">
+          </div>
+          <div class="mb-3">
+            <label for="linkYt" class="form-label">Link Youtube</label>
+            <input type="email" class="form-control" id="linkYt" aria-describedby="emailHelp">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary" id="submit-btn">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = new WebSocket("ws://103.27.206.90:3000");
+
+    socket.addEventListener("open", (event) => {
+      console.log("WebSocket connection opened:", event);
+    });
+
+    socket.addEventListener("message", (event) => {
+      var txtarea = document.getElementById("myTextarea");
+      txtarea.textContent += event.data;
+      txtarea.scrollTop = txtarea.scrollHeight;
+    });
+
+    socket.addEventListener("close", (event) => {
+      console.log("WebSocket connection closed:", event);
+    });
+
+    socket.addEventListener("error", (event) => {
+      console.error("WebSocket error:", event);
+    });
+
+    $(window).on('load', function () {
+      var tb = document.getElementById('tbody')
+      const jwt = localStorage.getItem('jwt');
+
+      $('#submit-btn').on('click', function () {
+        fetch('/playlist/add', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': "Bearer " + jwt
+          },
+          body: JSON.stringify({
+            'name': $('#judulVid')[0].value,
+            'link': $('#linkYt')[0].value,
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log(data);
+            if (data.success) {
+              alert("Success Add")
+              window.location.reload()
+            } else {
+              alert("Failed")
+              window.open('/link/');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+          });
+      });
+
+      fetch('/playlist/get', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data.playlist);
+          if (data.success) {
+            data.playlist.map((val) => {
+              console.log(val);
+              tb.innerHTML += `<tr>
+                <td>${val.name}</td>
+                <td><a href=${val.link} target="_blank">${val.link}</a></td>
+              </tr>`
+
+            })
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+</body>
+
+</html>

@@ -103,6 +103,10 @@ app.get("/link", function (req, res) {
   res.sendFile(path.join(__dirname, "/link/index.html"));
 });
 
+app.get("/playlist", function (req, res) {
+  res.sendFile(path.join(__dirname, "/playlist/index.html"));
+});
+
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   const user = users.find(
@@ -214,6 +218,41 @@ app.post("/record/stop", (req, res) => {
 
   ffmpeg.stdin.write("q");
   res.json({ success: true, body: "Recording stopped" });
+});
+
+app.post("/playlist/add", authenticateToken, (req, res) => {
+  const { link, name } = req.body;
+  fs.readFile('playlist/playlist.json', 'utf8', (err, data) => {
+    if (err) {
+      var playlist = [];
+    } else {
+      var playlist = JSON.parse(data);
+    }
+    playlist.push({ name, link });
+    console.log(playlist);
+    fs.writeFile('playlist/playlist.json', JSON.stringify(playlist), 'utf8', (err) => {
+      if (err) {
+        console.error('Error writing to playlist.json:', err);
+        res.status(500).send('Internal Server Error');
+      } else {
+        console.log('Playlist updated successfully');
+        res.json({ success: true });
+
+      }
+    });
+  });
+});
+
+app.get("/playlist/get", (req, res) => {
+  try {
+    const playlist = fs.readFileSync("playlist/playlist.json", "utf-8");
+    const parsedPlaylist = JSON.parse(playlist);
+
+    res.json({ success: true, playlist: parsedPlaylist });
+  } catch (error) {
+    console.error("Error reading file:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
 });
 
 wss.on("connection", (ws) => {
