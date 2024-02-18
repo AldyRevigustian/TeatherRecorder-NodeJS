@@ -65,7 +65,7 @@
 
   <script>
     $(window).on('load', function () {
-      const socket = new WebSocket("ws://103.27.206.90:3000");
+      const socket = new WebSocket("wss://103.27.206.90:3000");
 
       function connectWebSocket() {
         socket.addEventListener("open", (event) => {
