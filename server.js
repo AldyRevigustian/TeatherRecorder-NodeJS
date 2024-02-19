@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { exec } = require("child_process");
-const https = require("https");
+const http = require("http");
 const WebSocket = require("ws");
 const path = require("path");
 const app = express();
@@ -9,7 +9,7 @@ const fs = require("fs");
 const key = fs.readFileSync('key-rsa.pem');
 const cert = fs.readFileSync('cert.pem');
 
-const server = https.createServer({ key, cert }, app);
+const server = http.createServer({ key, cert }, app);
 const wss = new WebSocket.Server({ server });
 const jwt = require("jsonwebtoken");
 const { addItem, updateRecording, updateUpload, getItemByName, db } = require('./database');
