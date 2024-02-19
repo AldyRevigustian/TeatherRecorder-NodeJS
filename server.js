@@ -5,6 +5,7 @@ const https = require("https");
 const WebSocket = require("ws");
 const path = require("path");
 const app = express();
+const fs = require("fs");
 
 var options = {
   key: fs.readFileSync('key-rsa.pem'),
@@ -14,7 +15,6 @@ var options = {
 const server = https.createServer(options, app);
 const wss = new WebSocket.Server({ server });
 const jwt = require("jsonwebtoken");
-const fs = require("fs");
 const { addItem, updateRecording, updateUpload, getItemByName, db } = require('./database');
 
 var ffmpeg = [];
