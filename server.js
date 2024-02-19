@@ -5,7 +5,13 @@ const https = require("https");
 const WebSocket = require("ws");
 const path = require("path");
 const app = express();
-const server = https.createServer(app);
+
+var options = {
+  key: fs.readFileSync('key-rsa.pem'),
+  cert: fs.readFileSync('cert.pem')
+};
+
+const server = https.createServer(options, app);
 const wss = new WebSocket.Server({ server });
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
