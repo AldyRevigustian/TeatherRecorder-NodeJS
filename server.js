@@ -1,11 +1,11 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { exec } = require("child_process");
-const http = require("http");
+const https = require("https");
 const WebSocket = require("ws");
 const path = require("path");
 const app = express();
-const server = http.createServer(app);
+const server = https.createServer(app);
 const wss = new WebSocket.Server({ server });
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
