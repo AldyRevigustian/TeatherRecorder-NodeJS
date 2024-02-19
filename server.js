@@ -5,17 +5,13 @@ const http = require("http");
 const WebSocket = require("ws");
 const path = require("path");
 const app = express();
-const fs = require("fs");
-const key = fs.readFileSync('key-rsa.pem');
-const cert = fs.readFileSync('cert.pem');
-
-const server = http.createServer({ key, cert }, app);
+const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const jwt = require("jsonwebtoken");
+const fs = require("fs");
 const { addItem, updateRecording, updateUpload, getItemByName, db } = require('./database');
 
 var ffmpeg = [];
-
 
 const users = [{ id: 1, username: "aldey", password: "password" }];
 const secretKey = "your-secret-key";
