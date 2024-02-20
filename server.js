@@ -8,8 +8,8 @@ const app = express();
 const fs = require("fs");
 
 var options = {
-  key: fs.readFileSync('key-rsa.pem'),
-  cert: fs.readFileSync('cert.pem')
+  key: fs.readFileSync('key-rsa2.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/micna.my.id/fullchain.pem')
 };
 
 const server = https.createServer(options, app);
