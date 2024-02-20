@@ -24,6 +24,7 @@ const secretKey = "your-secret-key";
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static('public'));
 
 function authenticateToken(req, res, next) {
   const token =

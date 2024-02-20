@@ -39,6 +39,10 @@
       border-bottom-right-radius: var(--bs-modal-inner-border-radius);
       border-bottom-left-radius: var(--bs-modal-inner-border-radius);
     }
+
+    .hidden {
+      display: none;
+    }
   </style>
 
   <script src="https://code.jquery.com/jquery-3.2.1.min.js"
@@ -48,23 +52,32 @@
 </head>
 
 <body>
-  <div class="container col-12 col-xs-12 col-sm-12 col-md-8 col-lg-8 col-xl-8 col-xxl-8">
+  <div class="container text-left">
     <div class="row mt-4">
-      <h1 class="col-8">Recorded Playlist</h1>
-      <button type="button" class="btn btn-success col-4" data-bs-toggle="modal" data-bs-target="#exampleModal">
-        Add video
-      </button>
+      <div class="col-8">
+        <h1>Recorded Playlist</h1>
+      </div>
+      <div class="col-4 hidden" id="btn-add">
+        <button type="button" class="btn btn-success w-100 h-100" data-bs-toggle="modal" data-bs-target="#exampleModal">
+          Add video
+        </button>
+      </div>
     </div>
-    <table class="table table-dark table-striped table-bordered mt-4">
-      <thead>
-        <tr>
-          <th scope="col" style="text-align: center;" class="col-8">Judul Video</th>
-          <th scope="col" style="text-align: center;" class="col-4">Link Youtube</th>
-        </tr>
-      </thead>
-      <tbody id="tbody">
-      </tbody>
-    </table>
+    <div class="row mt-4">
+      <div class="col">
+        <table class="table table-dark table-striped table-bordered">
+          <thead>
+            <tr>
+              <th scope="col" style="text-align: center;" class="col-8">Judul Video</th>
+              <th scope="col" style="text-align: center;" class="col-4">Link Youtube</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <!-- Table body content goes here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <div class="modal fade modal-dark" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel"
@@ -94,29 +107,30 @@
   </div>
 
   <script>
-    const socket = new WebSocket("wss://micna.my.id/ws");
-
-    socket.addEventListener("open", (event) => {
-      console.log("WebSocket connection opened:", event);
-    });
-
-    socket.addEventListener("message", (event) => {
-      var txtarea = document.getElementById("myTextarea");
-      txtarea.textContent += event.data;
-      txtarea.scrollTop = txtarea.scrollHeight;
-    });
-
-    socket.addEventListener("close", (event) => {
-      console.log("WebSocket connection closed:", event);
-    });
-
-    socket.addEventListener("error", (event) => {
-      console.error("WebSocket error:", event);
-    });
-
     $(window).on('load', function () {
       var tb = document.getElementById('tbody')
       const jwt = localStorage.getItem('jwt');
+      const btn_add = document.getElementById('btn-add')
+
+      fetch('/linkcek', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': "Bearer " + jwt
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data);
+          if (data.success) {
+            btn_add.classList.remove("hidden")
+          } else {
+            localStorage.removeItem('jwt');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
 
       $('#submit-btn').on('click', function () {
         fetch('/playlist/add', {
