@@ -1,18 +1,17 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { exec } = require("child_process");
-const http = require("http");
+const https = require("https");
 const path = require("path");
 const app = express();
 const fs = require("fs");
 
-// var options = {
-//   key: fs.readFileSync('key-rsa2.pem'),
-//   cert: fs.readFileSync('/etc/letsencrypt/live/micna.my.id/fullchain.pem')
-// };
+var options = {
+  key: fs.readFileSync('key-rsa2.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/micna.my.id/fullchain.pem')
+};
 
-const server = http.createServer(app);
-// const server = http.createServer(options, app);
+const server = https.createServer(options, app);
 const jwt = require("jsonwebtoken");
 
 const users = [{ id: 1, username: "aldey", password: "password" }];
@@ -159,7 +158,7 @@ app.get('/log', (req, res) => {
   const currentDateTime = parsedLinkContent.date;
 
   if (parsedLinkContent.isRecording == true) {
-    const logStream = fs.createReadStream(`${currentDateTime}.log`);
+    const logStream = fs.createReadStream(`recorded/${currentDateTime}.log`);
     logStream.pipe(res);
   }else{
     res.send("Selesai Record")
@@ -174,11 +173,11 @@ app.post("/record", async (req, res) => {
     const inputUrl = parsedLinkContent.link;
     const currentDateTime = parsedLinkContent.date;
 
-    const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy ${currentDateTime}.mp4`
-    // const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
+    // const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy ${currentDateTime}.mp4`
+    const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
     const ffmpegProcess = exec(ffmpegCommand);
 
-    const logStream = fs.createWriteStream(`${currentDateTime}.log`, { flags: 'a' });
+    const logStream = fs.createWriteStream(`recorded/${currentDateTime}.log`, { flags: 'a' });
     ffmpegProcess.stdout.pipe(logStream);
     ffmpegProcess.stderr.pipe(logStream);
 
