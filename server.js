@@ -160,7 +160,7 @@ app.get('/log', (req, res) => {
   if (parsedLinkContent.isRecording == true) {
     const logStream = fs.createReadStream(`recorded/${currentDateTime}.log`);
     logStream.pipe(res);
-  }else{
+  }else if(parsedLinkContent.isRecording == false){
     res.send("Selesai Record")
   }
 });
