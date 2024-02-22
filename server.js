@@ -1,23 +1,19 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const { exec } = require("child_process");
-const https = require("https");
-const WebSocket = require("ws");
+const http = require("http");
 const path = require("path");
 const app = express();
 const fs = require("fs");
 
-var options = {
-  key: fs.readFileSync('key-rsa2.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/micna.my.id/fullchain.pem')
-};
+// var options = {
+//   key: fs.readFileSync('key-rsa2.pem'),
+//   cert: fs.readFileSync('/etc/letsencrypt/live/micna.my.id/fullchain.pem')
+// };
 
-const server = https.createServer(options, app);
-const wss = new WebSocket.Server({ server });
+const server = http.createServer(app);
+// const server = http.createServer(options, app);
 const jwt = require("jsonwebtoken");
-const { addItem, updateRecording, updateUpload, getItemByName, db } = require('./database');
-
-var ffmpeg = [];
 
 const users = [{ id: 1, username: "aldey", password: "password" }];
 const secretKey = "your-secret-key";
@@ -157,6 +153,19 @@ app.post("/updateJson", (req, res) => {
   }
 });
 
+app.get('/log', (req, res) => {
+  const linkContent = fs.readFileSync("link/link.json", "utf-8");
+  const parsedLinkContent = JSON.parse(linkContent);
+  const currentDateTime = parsedLinkContent.date;
+
+  if (parsedLinkContent.isRecording == true) {
+    const logStream = fs.createReadStream(`${currentDateTime}.log`);
+    logStream.pipe(res);
+  }else{
+    res.send("Selesai Record")
+  }
+});
+
 app.post("/record", async (req, res) => {
   try {
     const linkContent = fs.readFileSync("link/link.json", "utf-8");
@@ -164,43 +173,43 @@ app.post("/record", async (req, res) => {
 
     const inputUrl = parsedLinkContent.link;
     const currentDateTime = parsedLinkContent.date;
-    addItem(`${currentDateTime}.mp4`)
 
-    ffmpeg = exec(
-      `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
-    );
+    const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy ${currentDateTime}.mp4`
+    // const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
+    const ffmpegProcess = exec(ffmpegCommand);
 
-    ffmpeg.stdout.on("data", (data) => {
-      console.log(data.toString());
-      wss.clients.forEach((client) => {
-        client.send(data.toString());
-      });
-    });
+    const logStream = fs.createWriteStream(`${currentDateTime}.log`, { flags: 'a' });
+    ffmpegProcess.stdout.pipe(logStream);
+    ffmpegProcess.stderr.pipe(logStream);
 
-    ffmpeg.stderr.on("data", (data) => {
-      console.log(data.toString());
-      wss.clients.forEach((client) => {
-        client.send(data.toString());
-      });
-    });
-
-    ffmpeg.on("exit", (code, signal) => {
+    ffmpegProcess.on('close', (code) => {
       if (code == 0) {
         const link = parsedLinkContent.link;
         const date = parsedLinkContent.date;
 
-        updateRecording(`${date}.mp4`, 0)
+        const { isRecording = false, isDone = true } = req.body;
+        const dataToWrite = JSON.stringify({ link, isRecording, date, isDone });
+        fs.writeFileSync("link/link.json", dataToWrite);
+      } else {
+        console.error(`Streaming finished with error (code ${code}): ${signal}`);
+      }
+
+      logStream.end();
+    });
+
+    ffmpegProcess.on('exit', (code) => {
+      if (code == 0) {
+        const link = parsedLinkContent.link;
+        const date = parsedLinkContent.date;
 
         const { isRecording = false, isDone = true } = req.body;
         const dataToWrite = JSON.stringify({ link, isRecording, date, isDone });
         fs.writeFileSync("link/link.json", dataToWrite);
-
-        wss.clients.forEach((client) => {
-          client.send("Streaming finished successfully");
-        });
       } else {
         console.error(`Streaming finished with error (code ${code}): ${signal}`);
       }
+
+      logStream.end();
     });
 
     res.json({ success: true, body: "Recording started" });
@@ -216,8 +225,6 @@ app.post("/record/stop", (req, res) => {
 
   const link = parsedLinkContent.link;
   const date = parsedLinkContent.date;
-
-  updateRecording(`${date}.mp4`, 0)
 
   const { isRecording = false, isDone = true } = req.body;
   const dataToWrite = JSON.stringify({ link, isRecording, date, isDone });
@@ -260,14 +267,6 @@ app.get("/playlist/get", (req, res) => {
     console.error("Error reading file:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
-});
-
-wss.on("connection", (ws) => {
-  console.log("Client connected");
-
-  ws.on("close", () => {
-    console.log("Client disconnected");
-  });
 });
 
 server.listen(3000, () => {
