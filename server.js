@@ -17,6 +17,7 @@ const jwt = require("jsonwebtoken");
 const users = [{ id: 1, username: "aldey", password: "password" }];
 const secretKey = "your-secret-key";
 
+var ffmpeg = [];
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static('public'));
@@ -152,15 +153,27 @@ app.post("/updateJson", (req, res) => {
   }
 });
 
+function checkFileExistsSync(filepath) {
+  let flag = true;
+  try {
+    fs.accessSync(filepath, fs.constants.F_OK);
+  } catch (e) {
+    flag = false;
+  }
+  return flag;
+}
+
 app.get('/log', (req, res) => {
   const linkContent = fs.readFileSync("link/link.json", "utf-8");
   const parsedLinkContent = JSON.parse(linkContent);
   const currentDateTime = parsedLinkContent.date;
 
   if (parsedLinkContent.isRecording == true) {
-    const logStream = fs.createReadStream(`recorded/${currentDateTime}.log`);
-    logStream.pipe(res);
-  }else if(parsedLinkContent.isDone == true){
+    if (checkFileExistsSync(`recorded/${currentDateTime}.log`) == true) {
+      const logStream = fs.createReadStream(`recorded/${currentDateTime}.log`);
+      logStream.pipe(res);
+    }
+  } else if (parsedLinkContent.isDone == true) {
     res.send("Selesai Record")
   }
 });
@@ -173,15 +186,16 @@ app.post("/record", async (req, res) => {
     const inputUrl = parsedLinkContent.link;
     const currentDateTime = parsedLinkContent.date;
 
-    // const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy ${currentDateTime}.mp4`
-    const ffmpegCommand = `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
-    const ffmpegProcess = exec(ffmpegCommand);
+    ffmpeg = exec(
+      `ffmpeg -i "${inputUrl}" -c copy /var/www/Teather-Recorder/recorded/${currentDateTime}.mp4`
+      // `ffmpeg -i "${inputUrl}" -c copy ${currentDateTime}.mp4`
+    );
 
     const logStream = fs.createWriteStream(`recorded/${currentDateTime}.log`, { flags: 'a' });
-    ffmpegProcess.stdout.pipe(logStream);
-    ffmpegProcess.stderr.pipe(logStream);
+    ffmpeg.stdout.pipe(logStream);
+    ffmpeg.stderr.pipe(logStream);
 
-    ffmpegProcess.on('close', (code) => {
+    ffmpeg.on('close', (code) => {
       if (code == 0) {
         const link = parsedLinkContent.link;
         const date = parsedLinkContent.date;
@@ -192,11 +206,11 @@ app.post("/record", async (req, res) => {
       } else {
         console.error(`Streaming finished with error (code ${code}): ${signal}`);
       }
-
+      ffmpeg.stdin.write("q");
       logStream.end();
     });
 
-    ffmpegProcess.on('exit', (code) => {
+    ffmpeg.on('exit', (code) => {
       if (code == 0) {
         const link = parsedLinkContent.link;
         const date = parsedLinkContent.date;
@@ -207,7 +221,7 @@ app.post("/record", async (req, res) => {
       } else {
         console.error(`Streaming finished with error (code ${code}): ${signal}`);
       }
-
+      ffmpeg.stdin.write("q");
       logStream.end();
     });
 
@@ -228,7 +242,6 @@ app.post("/record/stop", (req, res) => {
   const { isRecording = false, isDone = true } = req.body;
   const dataToWrite = JSON.stringify({ link, isRecording, date, isDone });
   fs.writeFileSync("link/link.json", dataToWrite);
-
   ffmpeg.stdin.write("q");
   res.json({ success: true, body: "Recording stopped" });
 });
